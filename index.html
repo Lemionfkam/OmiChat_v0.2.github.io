@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMI Chat v0.2</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- <link rel="icon" href="img/favicon.ico" type="image/x-icon"> -->
+</head>
+<body>
+    <!-- Модальное окно входа -->
+    <div id="loginModal" class="login-modal">
+        <div class="login-card">
+            <div class="login-logo">
+                <svg width="80" height="80" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 12H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1zm0-4H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1z"/>
+                </svg>
+            </div>
+            <h2>Добро пожаловать в OMI Chat!</h2>
+            <p>Введите ваше имя для начала общения</p>
+            <input type="text" id="usernameInput" class="login-input" 
+                   placeholder="Как вас зовут?" maxlength="20" autofocus>
+            <button onclick="login()" class="login-button">Войти в чат</button>
+            <div class="login-footer">
+                <small>Версия 0.2 • Использует Google Sheets API</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Основной интерфейс чата -->
+    <div id="chatInterface" class="chat-app">
+        <!-- Боковая панель -->
+        <div class="sidebar">
+            <div class="user-card">
+                <div class="avatar" id="userAvatar">
+                    <span>U</span>
+                </div>
+                <h3 id="currentUsername">Гость</h3>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-indicator"></span>
+                    <span id="statusText">Отключено</span>
+                </div>
+                <div class="user-stats">
+                    <div class="stat-item">
+                        <span class="stat-icon">💬</span>
+                        <span id="messageCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon">👥</span>
+                        <span id="onlineCount">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="online-users">
+                <h4>
+                    <span class="icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#34A853">
+                            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                        </svg>
+                    </span>
+                    <span>Онлайн</span>
+                    <span id="onlineCountBadge" class="badge">0</span>
+                </h4>
+                <div id="usersList">
+                    <!-- Список пользователей будет здесь -->
+                </div>
+            </div>
+            
+            <!-- Квадратные кнопки в сетке 3x2 -->
+            <div class="sidebar-footer">
+                <!-- Первый ряд -->
+                <button onclick="refreshChat()" class="btn btn-primary" title="Обновить сообщения" id="refreshBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Обновить</span>
+                    <span id="refreshBadge" class="btn-badge">0</span>
+                </button>
+                
+                <button onclick="exportChat()" class="btn btn-success" title="Экспортировать историю" id="exportBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Экспорт</span>
+                </button>
+                
+                <button onclick="showSettings()" class="btn btn-secondary" title="Настройки и информация" id="settingsBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Настройки</span>
+                </button>
+                
+                <!-- Второй ряд -->
+                <button onclick="clearLocalChat()" class="btn btn-secondary" title="Очистить локальную историю" id="clearBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Очистить</span>
+                </button>
+                
+                <button onclick="showUsers()" class="btn btn-secondary" title="Список пользователей" id="usersBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Участники</span>
+                </button>
+                
+                <button onclick="showHelp()" class="btn btn-secondary" title="Справка и помощь" id="helpBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Помощь</span>
+                </button>
+                
+                <!-- Кнопка выхода на всю ширину -->
+                <button onclick="logout()" class="btn btn-danger btn-logout" title="Выйти из чата" id="logoutBtn">
+                    <div class="btn-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                        </svg>
+                    </div>
+                    <span class="btn-text">Выйти из чата</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Основная область -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <div class="chat-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="#4285F4">
+                            <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2>Общий чат</h2>
+                        <div class="chat-info">
+                            <span id="lastUpdate">--:--</span>
+                            <span class="divider">•</span>
+                            <span id="connectionInfo">Подключение...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-controls">
+                    <div id="typingIndicator" class="typing-indicator">
+                        <div class="dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <span>Кто-то печатает...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="messages-container" id="messagesContainer">
+                <!-- Сообщения будут здесь -->
+                <div class="welcome-message" id="welcomeMessage">
+                    <div class="welcome-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-3 12H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1zm0-4H7c-.55 0-1-.45-1-1s.45-1 1-1h10c.55 0 1 .45 1 1s-.45 1-1 1z"/>
+                        </svg>
+                    </div>
+                    <h3>Добро пожаловать в OMI Chat v0.2!</h3>
+                    <p>Это мессенджер на основе Google Sheets. Все сообщения сохраняются в таблице.</p>
+                </div>
+            </div>
+            
+            <div class="input-area">
+                <textarea 
+                    id="messageInput" 
+                    class="message-input" 
+                    placeholder="Напишите сообщение..." 
+                    rows="1"
+                    disabled
+                ></textarea>
+                <button onclick="sendMessage()" class="send-button" id="sendButton" disabled>
+                    <svg class="send-icon" width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            initApp();
+        });
+    </script>
+</body>
+</html>
